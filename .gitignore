@@ -1,0 +1,6 @@
+# raw inputs (large, re-downloadable: see README "Rebuilding the data")
+raw/
+__pycache__/
+*.pyc
+pipeline/*.log
+.claude/

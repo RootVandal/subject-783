@@ -1,0 +1,10 @@
+{
+  "trials_ours": 10,
+  "trials_reference": 30,
+  "active_neurons_reference": 448,
+  "active_neurons_ours": 440,
+  "mn9_hz_reference": 93.3,
+  "mn9_hz_ours": 92.1,
+  "pearson_r_nonstimulated": 0.9997,
+  "top20_overlap": 20
+}

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subject 783</title>
+<meta name="description" content="A whole fruit-fly brain (FlyWire connectome, 138,639 neurons) simulated live in the browser. An underground lab, a subject in a chair, a console of experiments.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23080808'/%3E%3Ccircle cx='10' cy='14' r='6' fill='%237a0e08'/%3E%3Ccircle cx='22' cy='14' r='6' fill='%237a0e08'/%3E%3Ccircle cx='16' cy='23' r='2.4' fill='%23e2a64a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="3D laboratory scene"></canvas>
+<div id="flash" aria-hidden="true"></div>
+
+<!-- ============ title sequence ============ -->
+<section id="intro">
+  <div class="frame" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <header class="intro-top">
+    <span>LAB B-7 <i>//</i> DROSOPHILA CNS <i>//</i> <b data-i18n="intro_access"></b></span>
+    <span class="intro-lang"><button data-lang="ru" type="button">RU</button><button data-lang="en" type="button">EN</button></span>
+  </header>
+  <div class="intro-main">
+    <p class="kicker" data-i18n="kicker"></p>
+    <h1 id="title" aria-label="Subject 783"></h1>
+    <p class="lead" data-i18n="lead"></p>
+    <pre id="bootlog" aria-live="polite"></pre>
+    <div class="progress"><span id="progressbar"></span></div>
+    <div class="progress-meta"><span id="prog-pct">0%</span><span id="prog-mb"></span></div>
+    <button id="enter" type="button" disabled><span class="fill" aria-hidden="true"></span><b data-i18n="loading"></b></button>
+    <p class="best" data-i18n="best"></p>
+  </div>
+  <aside class="intro-data" aria-hidden="true">
+    <div><small data-i18n="d_neurons"></small><b>138 639</b></div>
+    <div><small data-i18n="d_synapses"></small><b>54 492 922</b></div>
+    <div><small data-i18n="d_section"></small><b id="d-section">—</b></div>
+    <div><small data-i18n="d_spikes"></small><b id="d-spikes">—</b></div>
+  </aside>
+  <footer class="intro-foot"><span data-i18n="intro_warn"></span><span>FAFB v783 · 4×4×40 nm</span></footer>
+</section>
+
+<!-- ============ experiment title card ============ -->
+<section id="titlecard" hidden aria-live="polite">
+  <div class="tc-box">
+    <p class="tc-kicker">LAB B-7 · DROSOPHILA MELANOGASTER · PROTOCOL 783</p>
+    <h2><span data-i18n="exp_no"></span> <b id="tc-num">#001</b></h2>
+    <p class="tc-subject"><span data-i18n="tc_subject"></span> <span id="tc-subj">783-001</span></p>
+    <pre id="tc-log"></pre>
+  </div>
+</section>
+
+<!-- ============ HUD ============ -->
+<div id="hud" hidden>
+  <header class="topbar">
+    <div class="brand">
+      <b data-i18n="title"></b>
+      <span><span data-i18n="exp_no"></span> <em id="exp-num">#001</em> <i class="rec">● REC</i> <span id="rec-time">00:00</span></span>
+    </div>
+    <div class="meters">
+      <div class="meter stress" role="meter" aria-valuemin="0" aria-valuemax="100" aria-label="stress">
+        <small data-i18n="g_stress"></small><div class="bar"><i id="stress-fill"></i></div><span id="stress-val">0%</span>
+      </div>
+      <div class="meter load" role="meter" aria-valuemin="0" aria-valuemax="150" aria-label="CNS load">
+        <small data-i18n="g_load"></small><div class="bar"><i id="load-fill"></i><u></u></div><span id="load-val">0%</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div><small data-i18n="sim_time"></small><span id="st-time">0.00 s</span></div>
+      <div><small data-i18n="speed"></small><span id="st-speed">—</span></div>
+      <div class="wide"><small data-i18n="spikes"></small><span id="st-spikes">0</span></div>
+    </div>
+    <div class="tools">
+      <button class="lang" data-lang="ru" type="button">RU</button><button class="lang" data-lang="en" type="button">EN</button>
+      <button id="btn-track" type="button" data-i18n-title="track_title"><span id="track-name" data-i18n="track_btn"></span></button><button id="btn-track-x" type="button" hidden aria-label="built-in music">×</button>
+      <input id="track-file" type="file" accept="audio/*" hidden>
+      <div id="musicpanel" hidden>
+        <b data-i18n="mp_title"></b>
+        <form id="yt-form"><input id="yt-url" type="url" inputmode="url" autocomplete="off" data-i18n-ph="mp_yt_ph"><button type="submit" data-i18n="mp_go"></button></form>
+        <button id="mp-file" type="button" data-i18n="mp_file"></button>
+        <small data-i18n="mp_note"></small>
+      </div>
+      <button id="btn-sound" type="button" aria-pressed="true" aria-label="sound">♪</button>
+      <button id="btn-about" type="button" data-i18n="about"></button>
+    </div>
+  </header>
+
+  <nav class="focusbar lab-only" aria-label="camera">
+    <button type="button" data-focus="left" data-i18n="focus_left"></button>
+    <button type="button" data-focus="subject" data-i18n="focus_subject"></button>
+    <button type="button" data-focus="center" data-i18n="focus_back"></button>
+    <button type="button" data-focus="console" data-i18n="focus_console"></button>
+    <button type="button" data-focus="right" data-i18n="focus_right"></button>
+  </nav>
+
+  <div id="rotate" aria-live="polite"><i aria-hidden="true">📱</i><b data-i18n="rotate"></b><span data-i18n="rotate_d"></span></div>
+  <div id="alarm" hidden><b id="alarm-title"></b><span id="alarm-text"></span></div>
+  <div id="armed" hidden><b id="armed-text"></b></div>
+  <ol id="journal" class="lab-only" aria-live="polite"></ol>
+  <div id="tip" hidden><b></b><span></span><kbd></kbd></div>
+  <p class="keys lab-only" data-i18n="hint_keys"></p>
+  <canvas id="pip" width="320" height="200" aria-label="brain activity"></canvas>
+  <div id="yt" hidden><div class="yt-head"><span id="yt-title">YouTube</span></div><div id="yt-player"></div></div>
+
+  <!-- flight mode -->
+  <div id="flighthud" hidden>
+    <div class="fl-banner"><b data-i18n="flight_banner"></b> · <span data-i18n="flight_cam"></span></div>
+    <div class="fl-panel">
+      <div class="fl-row"><small>DNa02 L</small><div class="fl-bar"><i id="fl-dnaL"></i></div><span id="fl-dnaL-v">0</span></div>
+      <div class="fl-row"><small>DNa02 R</small><div class="fl-bar"><i id="fl-dnaR"></i></div><span id="fl-dnaR-v">0</span></div>
+      <div class="fl-row"><small>DNg02</small><div class="fl-bar"><i id="fl-dng"></i></div><span id="fl-dng-v">0</span></div>
+      <div class="fl-row gf"><small>GF</small><div class="fl-bar"><i id="fl-gf"></i></div><span id="fl-gf-v">0</span></div>
+      <div class="fl-row"><small data-i18n="flight_alt"></small><span class="fl-num" id="fl-alt">0.0 m</span><small data-i18n="flight_spd"></small><span class="fl-num" id="fl-spd">0.0 m/s</span></div>
+      <p class="fl-note" data-i18n="flight_auto"></p>
+    </div>
+    <p class="fl-hint" data-i18n="flight_hint"></p>
+    <div class="fl-keys">
+      <button type="button" data-steer="left">←</button>
+      <button type="button" data-steer="up">↑</button>
+      <button type="button" data-steer="down">↓</button>
+      <button type="button" data-steer="right">→</button>
+      <button type="button" data-steer="gf">GF</button>
+    </div>
+    <button id="btn-explode" type="button"><span data-i18n="explode"></span><b id="explode-num">001</b> <kbd>X</kbd></button>
+  </div>
+
+  <!-- inside the dying subject -->
+  <div id="povhud" hidden>
+    <div class="pov-top"><b data-i18n="pov_title"></b><span id="pov-cause"></span></div>
+    <div class="pov-vitals">
+      <div><small data-i18n="pov_time"></small><b id="pov-time">+0.0 s</b></div>
+      <div><small data-i18n="pov_alive"></small><b id="pov-alive">—</b></div>
+      <div><small data-i18n="spikes"></small><b id="pov-spikes">0</b></div>
+    </div>
+    <p class="pov-note" data-i18n="pov_note"></p>
+  </div>
+
+  <div id="deathcard" hidden>
+    <p class="dc-kicker" data-i18n="dc_kicker"></p>
+    <h2><span data-i18n="tc_subject"></span> <b id="dc-subj"></b></h2>
+    <p class="dc-dead" data-i18n="j_dead"></p>
+    <dl>
+      <dt data-i18n="dc_cause"></dt><dd id="dc-cause"></dd>
+      <dt data-i18n="dc_time"></dt><dd id="dc-time"></dd>
+      <dt data-i18n="dc_last"></dt><dd id="dc-last"></dd>
+    </dl>
+    <button id="btn-next" type="button"><span data-i18n="dc_next"></span> <kbd>R</kbd></button>
+  </div>
+</div>
+
+<!-- ============ about ============ -->
+<dialog id="about">
+  <button class="close" type="button" data-i18n="close"></button>
+  <article data-lang-block="ru">
+    <h2>Что здесь происходит</h2>
+    <p>В 2024 году консорциум <b>FlyWire</b> опубликовал полный коннектом мозга взрослой дрозофилы: каждый из 138 639 нейронов и 54,5 млн синапсов, восстановленные по электронной микроскопии. В том же выпуске Nature <b>Shiu et al.</b> превратили эту схему в модель: каждый нейрон — «интегрирующий» нейрон с утечкой, каждая связь — реальное число синапсов со знаком медиатора. Модель с единственным свободным параметром (вес одного синапса) предсказала, какие нейроны запускают выдвижение хоботка при вкусе сахара, и эти предсказания подтвердились в опытах на живых мухах.</p>
+    <p>Этот сайт запускает <b>ту же модель целиком, прямо в браузере</b>. Каждая точка на правом мониторе — реальный нейрон в своей реальной позиции. Вспышка — это спайк, рассчитанный моделью сейчас, а не анимация. Даже в заставке мозг мерцает настоящими спайками.</p>
+    <h3>Насколько это честно — проверено</h3>
+    <ul>
+      <li><b>Порт модели = оригинал.</b> Python-версия (<code>pipeline/lif.py</code>) совпадает с оригинальным кодом на Brian2 <b>спайк в спайк: 3 450 из 3 450</b> на всём мозге. С опубликованными результатами: корреляция частот <b>r = 0,9997</b>, MN9 — 92,1 Гц против 93,3 Гц.</li>
+      <li><b>Браузерный движок = порт.</b> Он событийный: состояние нейрона между входами считается аналитически, а момент пересечения порога решается заранее. Это примерно в 10 раз быстрее пошагового расчёта и даёт <b>идентичные спайки</b> (<code>tools/bench.html</code>).</li>
+      <li><b>Что упрощено.</b> Нейрон влияет на сеть только когда спайкует. Мы прогнали все опыты на полном мозге офлайн и оставили исходящие синапсы только у ~35 тыс. нейронов, что спайковали или подходили к порогу ближе 2 мВ. Принимают вход все 138 639.</li>
+    </ul>
+    <h3>Опыты и нейроны</h3>
+    <ul>
+      <li><b>Сахар / горечь</b> — вкусовые рецепторы хоботка (32 сахарных, 42 горьких). Хоботок двигается по частоте мотонейрона <b>MN9</b>. Горечь подавляет ответ на сахар — как у живой мухи.</li>
+      <li><b>Музыка</b> — громкость в реальном времени задаёт частоту рецепторов органа Джонстона (JO-A/B). Можно поставить свой трек: кнопка «♫» вверху или перетащите файл в окно; он играет только у вас в браузере. Громкий звук возбуждает и гигантское волокно — муха вздрагивает.</li>
+      <li><b>Ветер / щекотка</b> — рецепторы отклонения антенн (JO-C/E) и щетинок головы. Нейроны чистки выбраны по данным: нисходящие нейроны, которые сильнее всего отвечают на эти стимулы.</li>
+      <li><b>Свет, стробоскоп, лазер</b> — фоторецепторы R1–R8. Мигание лампы над креслом тоже доходит до глаз. Стробоскоп бьёт по всем 10 582 фоторецепторам разом. Лазер светит в левый глаз; через полторы секунды фоторецепторы в пятне начинают <b>гибнуть</b> — в модели они навсегда перестают спайковать, и на мониторе зрения гаснут их омматидии.</li>
+      <li><b>Ток</b> — разряд по телу: 1 736 восходящих нейронов, несущих сигналы от тела в мозг.</li>
+      <li><b>Центрифуга</b> — кресло раскручивается: отклонение антенн (JO-C/E) и поток картинки на глазах.</li>
+      <li><b>VR: угроза</b> — надвигающаяся тень возбуждает детекторы «наезда» LPLC2 и LC4 → гигантское волокно → рефлекс бегства.</li>
+      <li><b>Запах</b> — ⚠ здесь модель ломается: возникает самоподдерживающийся разряд в антеннальной доле и грибовидных телах. То же вызывают CO₂ и термо-рецепторы, поэтому их на пульте нет. Это ограничение модели: в ней нет нейромодуляторов, электрических синапсов и тонкой динамики торможения.</li>
+    </ul>
+    <h3>Перегрузка, кома и смерть — наши вмешательства</h3>
+    <p>В модели Shiu нет повреждений и ядов. Всё ниже — наши вмешательства <b>поверх</b> неё, и они честно считаются в той же модели: заблокированный нейрон навсегда становится «невозбудимым» (больше не спайкует и не принимает вход).</p>
+    <ul>
+      <li><b>Нагрузка ЦНС</b> — спайки всех нейронов, кроме рецепторов, на которые мы подаём стимул; 100% = 60 000 в секунду. Если нагрузка держится выше 100%, начинается обратный отсчёт; не нажали СБРОС — нейроны «выгорают»: сначала самые перевозбуждённые, потом остальные. Порог и выгорание придуманы нами для интерфейса; сам разряд считает модель.</li>
+      <li><b>Тетродотоксин (TTX)</b> блокирует натриевые каналы: нейроны перестают спайковать. В модели — волна блокировки от шеи, откуда яд с гемолимфой входит в мозг.</li>
+      <li><b>Неоникотиноид</b> — агонист никотиновых ацетилхолиновых рецепторов, главного возбуждающего медиатора мозга насекомых. Мы усиливаем возбуждающие синапсы в 1,5 раза и подаём возбуждение с тела. Этого хватает, чтобы вся сеть ушла в судороги, — модель находится близко к порогу такого разряда. Нейрон, выдавший в судороге 25 спайков, гибнет (эксайтотоксичность), остальные замолкают, когда рецепторы «устают».</li>
+      <li><b>Азот (N₂)</b> — без кислорода в мозге насекомых прокатывается волна распространяющейся деполяризации, после которой нейроны молчат, а муха впадает в кому. В модели — волна обратимой блокировки; кислород возвращает нейроны обратно. Дольше 40 секунд — смерть.</li>
+      <li><b>Пила</b> — ноги и крылья связаны с мозгом только через брюшную нервную цепочку, которой в модели нет, поэтому их отрезание — это сигнал травмы по восходящим нейронам тела. Антенна сидит на голове: нейроны органа Джонстона этой стороны дают разряд и навсегда замолкают — после этого музыка и ветер доходят до мозга только через другую антенну. Обонятельные нейроны антенны мы не трогаем: их всплеск ломает модель.</li>
+      <li><b>Вид изнутри</b> — фасеточное изображение строится из камеры в глазу, но каждый омматидий привязан к фоторецептору и нейрону зрительной доли: он гаснет, когда эти нейроны блокируются в модели.</li>
+    </ul>
+    <h3>Полёт</h3>
+    <p>Тела и брюшной нервной цепочки в модели нет, поэтому мы подключили <b>выходы мозга к простой физике полёта</b>. Поворот задаёт разница частот нейронов <b>DNa02</b> слева и справа, тягу крыльев — нейроны <b>DNg02</b>, а резкий манёвр — <b>гигантское волокно</b>. Автопилот стимулирует DNg02, а вы «вклиниваетесь» в мозг стрелками, подавая спайки на эти нейроны.</p>
+    <h3>Чего здесь нет</h3>
+    <p>«Страх», «интерес», «стресс», «голод» — это <b>подписи к нейронным цепям</b>, а не измеренные эмоции. Голод — внутренняя переменная интерфейса. Боль модель не чувствует: мы видим только, какие цепи возбуждаются. Взрыв, баки с прежними объектами и фигура в глубине зала — художественная часть.</p>
+    <h3>Источники</h3>
+    <ul class="refs">
+      <li>Dorkenwald S. et al. Neuronal wiring diagram of an adult brain. <i>Nature</i> 634, 124–138 (2024).</li>
+      <li>Schlegel P. et al. Whole-brain annotation and multi-connectome cell typing of Drosophila. <i>Nature</i> 634, 139–152 (2024).</li>
+      <li>Shiu P. K. et al. A Drosophila computational brain model reveals sensorimotor processing. <i>Nature</i> 634, 210–219 (2024). Код: github.com/philshiu/Drosophila_brain_model (MIT).</li>
+      <li>Rayshubskiy A. et al. Neural circuit mechanisms for steering control in walking Drosophila. <i>bioRxiv</i> (2020) — DNa02 и поворот.</li>
+      <li>Namiki S. et al. A population of descending neurons that regulates the flight motor of Drosophila. <i>Curr. Biol.</i> 32 (2022) — DNg02 и мощность взмаха.</li>
+    </ul>
+  </article>
+  <article data-lang-block="en" hidden>
+    <h2>What is going on here</h2>
+    <p>In 2024 the <b>FlyWire</b> consortium published the complete connectome of an adult fruit-fly brain: all 138,639 neurons and 54.5 million synapses, reconstructed from electron microscopy. In the same issue of Nature, <b>Shiu et al.</b> turned that wiring diagram into a model: every neuron is a leaky integrate-and-fire unit, every connection is the real synapse count signed by its neurotransmitter. With a single free parameter (the weight of one synapse) it predicted which neurons drive proboscis extension to sugar, and those predictions held up in living flies.</p>
+    <p>This site runs <b>that same model, whole, in your browser</b>. Every dot on the right monitor is a real neuron at its real position. A flash is a spike the model is computing right now, not an animation. Even on the title screen the brain flickers with real spikes.</p>
+    <h3>How honest is it? Verified</h3>
+    <ul>
+      <li><b>Port = original.</b> The Python port (<code>pipeline/lif.py</code>) reproduces the original Brian2 code <b>spike-for-spike: 3,450 of 3,450</b> across the whole brain. Against the published results: firing-rate correlation <b>r = 0.9997</b>, MN9 at 92.1 Hz vs 93.3 Hz.</li>
+      <li><b>Browser engine = port.</b> It is event-driven: between inputs a neuron's state is solved in closed form and its threshold crossing is computed ahead of time. That is about 10× faster than stepping the neurons and gives <b>identical spikes</b> (<code>tools/bench.html</code>).</li>
+      <li><b>What is reduced.</b> A neuron affects the network only when it spikes. We ran every experiment on the full brain offline and ship outgoing synapses only for the ~35k neurons that spiked or came within 2 mV of threshold. All 138,639 still receive input.</li>
+    </ul>
+    <h3>Experiments and neurons</h3>
+    <ul>
+      <li><b>Sugar / bitter</b>: labellar taste receptors (32 sugar, 42 bitter). The proboscis follows motor neuron <b>MN9</b>. Bitter suppresses the sugar response, as in real flies.</li>
+      <li><b>Music</b>: live loudness drives Johnston's-organ receptors (JO-A/B). You can play your own track: the "♫" button at the top, or drop a file onto the window; it stays in your browser. Loud sound also excites the giant fiber, so the fly startles.</li>
+      <li><b>Wind / tickle</b>: antennal-deflection receptors (JO-C/E) and head bristles. The grooming neurons are chosen from the data: the descending neurons that respond most to these stimuli.</li>
+      <li><b>Light, strobe, laser</b>: photoreceptors R1–R8. The flicker of the lamp over the chair reaches the eyes too. The strobe hits all 10,582 photoreceptors at once. The laser shines into the left eye; after a second and a half the photoreceptors in the spot start to <b>die</b>: in the model they stop spiking for good and their ommatidia go dark on the vision monitor.</li>
+      <li><b>Shock</b>: a shock to the body drives the 1,736 ascending neurons that carry body signals into the brain.</li>
+      <li><b>Centrifuge</b>: the chair spins: antennal deflection (JO-C/E) plus optic flow on the eyes.</li>
+      <li><b>VR: threat</b>: a looming shadow drives loom detectors LPLC2 and LC4 → giant fiber → escape reflex.</li>
+      <li><b>Odor</b>: ⚠ this is where the model breaks: a self-sustaining discharge ignites in the antennal lobe and mushroom bodies. CO₂ and thermosensors ignite it too, which is why they are not on the console. A genuine limitation: no neuromodulators, electrical synapses or detailed inhibition dynamics.</li>
+    </ul>
+    <h3>Overload, coma and death: our interventions</h3>
+    <p>The Shiu model has no damage and no poisons. Everything below is our intervention <b>on top</b> of it, computed honestly in the same model: a blocked neuron becomes permanently unexcitable (it no longer spikes or takes input).</p>
+    <ul>
+      <li><b>CNS load</b>: spikes of every neuron except the receptors we stimulate; 100% = 60,000 per second. If the load stays above 100%, a countdown starts; without RESET the neurons "burn out": the most overdriven first, then the rest. The threshold and the burn-out are our interface; the discharge itself is the model's.</li>
+      <li><b>Tetrodotoxin (TTX)</b> blocks sodium channels: neurons stop spiking. In the model: a wave of blocking from the neck, where the toxin enters the brain with the hemolymph.</li>
+      <li><b>Neonicotinoid</b>: an agonist of nicotinic acetylcholine receptors, the main excitatory transmitter of the insect brain. We scale excitatory synapses by 1.5 and add excitation from the body. That is enough to throw the whole network into a seizure: the model sits close to the threshold of such a discharge. A neuron that fires 25 spikes in the seizure dies (excitotoxicity); the rest fall silent as the receptors desensitise.</li>
+      <li><b>Nitrogen (N₂)</b>: without oxygen a wave of spreading depolarisation crosses the insect brain, the neurons fall silent and the fly goes into a coma. In the model: a wave of reversible blocking; oxygen brings the neurons back. Over 40 seconds: death.</li>
+      <li><b>Saw</b>: legs and wings reach the brain only through the ventral nerve cord, which the model lacks, so severing one is an injury signal through the ascending neurons. The antenna sits on the head: its side's Johnston's-organ neurons fire a discharge and fall silent for good, after which music and wind reach the brain only through the other antenna. We leave the antenna's olfactory neurons alone: their burst breaks the model.</li>
+      <li><b>View from inside</b>: the compound-eye image comes from a camera in the eye, but every ommatidium is tied to a photoreceptor and an optic-lobe neuron and goes dark when those neurons are blocked in the model.</li>
+    </ul>
+    <h3>Flight</h3>
+    <p>The model has no body or nerve cord, so we connect <b>the brain's outputs to a simple flight model</b>. Turning comes from the left/right difference of <b>DNa02</b> firing, wing power from <b>DNg02</b>, a sharp manoeuvre from the <b>giant fiber</b>. The autopilot drives DNg02; you "break into" the brain with the arrow keys, injecting spikes into those neurons.</p>
+    <h3>What it is not</h3>
+    <p>"Fear", "interest", "stress", "hunger" are <b>labels for circuits</b>, not measured emotions. Hunger is an interface variable. The model does not feel pain: we only see which circuits fire. The explosion, the tanks of previous subjects and the figure down the hall are the artistic part.</p>
+    <h3>Sources</h3>
+    <ul class="refs">
+      <li>Dorkenwald S. et al. Neuronal wiring diagram of an adult brain. <i>Nature</i> 634, 124–138 (2024).</li>
+      <li>Schlegel P. et al. Whole-brain annotation and multi-connectome cell typing of Drosophila. <i>Nature</i> 634, 139–152 (2024).</li>
+      <li>Shiu P. K. et al. A Drosophila computational brain model reveals sensorimotor processing. <i>Nature</i> 634, 210–219 (2024). Code: github.com/philshiu/Drosophila_brain_model (MIT).</li>
+      <li>Rayshubskiy A. et al. Neural circuit mechanisms for steering control in walking Drosophila. <i>bioRxiv</i> (2020): DNa02 and turning.</li>
+      <li>Namiki S. et al. A population of descending neurons that regulates the flight motor of Drosophila. <i>Curr. Biol.</i> 32 (2022): DNg02 and wing power.</li>
+    </ul>
+  </article>
+</dialog>
+
+<noscript>This page needs JavaScript and WebGL.</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "duration_ms": 200,
+  "brian2_spikes": 3450,
+  "ours_spikes": 3450,
+  "identical": 3450,
+  "only_brian2": 0,
+  "only_ours": 0
+}

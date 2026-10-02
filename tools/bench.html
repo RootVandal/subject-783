@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Simulator bench</title>
+<style>body{background:#111;color:#cfc;font:14px monospace;padding:16px}</style>
+</head>
+<body>
+<h3>Whole-brain LIF in a Web Worker: correctness and throughput</h3>
+<pre id="out">loading…</pre>
+<script>
+// 1) event-driven engine vs dense reference stepper: same seed -> spike counts must match
+// 2) throughput of the event-driven engine per experiment (sim-time / wall-time)
+const out = document.getElementById('out');
+const log = (s) => { out.textContent += '\n' + s; };
+function spawn(mode, meta) {
+  const w = new Worker('../js/sim/worker.js');
+  const wait = (type) => new Promise((res, rej) => {
+    const h = (e) => {
+      if (e.data.type === type) { w.removeEventListener('message', h); res(e.data); }
+      else if (e.data.type === 'error') { log('ERROR ' + e.data.message); rej(e.data.message); }
+    };
+    w.addEventListener('message', h);
+  });
+  w.postMessage({ type: 'load', mode, synapsesUrls: (meta.synapse_parts || ['synapses.bin.gz']).map((p) => new URL(`../data/${p}`, location.href).href), stim: meta.stim });
+  return { w, wait };
+}
+(async () => {
+  const meta = await (await fetch('../data/brain.json')).json();
+  const zero = Object.fromEntries(Object.keys(meta.stim).map((k) => [k, 0]));
+  const cases = {
+    sugar: { sugar: 200 },
+    bitter: { bitter: 200 },
+    music: { hearing: 150 },
+    loom: { loom: 150 },
+    light: { eyeL: 40, eyeR: 40 },
+    odor: { odor: 150 },
+    everything: { sugar: 150, bitter: 150, hearing: 150, loom: 150, odor: 150, eyeL: 40, eyeR: 40 },
+  };
+  const E = spawn('event', meta), D = spawn('dense', meta);
+  const t0 = performance.now();
+  await Promise.all([E.wait('ready'), D.wait('ready')]);
+  log(`loaded in ${(performance.now() - t0).toFixed(0)} ms`);
+  const results = { verify: {}, speed: {} };
+  for (const name of ['sugar', 'loom', 'odor']) {
+    const rates = { ...zero, ...cases[name] };
+    for (const X of [E, D]) { X.w.postMessage({ type: 'reset', seed: 7 }); X.w.postMessage({ type: 'bench', ms: 150, rates, counts: true }); }
+    const [a, b] = await Promise.all([E.wait('bench'), D.wait('bench')]);
+    let diff = 0, cells = 0;
+    for (let i = 0; i < a.counts.length; i++) { if (a.counts[i] !== b.counts[i]) diff++; if (a.counts[i] || b.counts[i]) cells++; }
+    results.verify[name] = { spikesEvent: a.spikes, spikesDense: b.spikes, cellsWithDifferentCount: diff, activeCells: cells };
+    log(`verify ${name.padEnd(6)} event=${a.spikes} dense=${b.spikes} spikes; cells differing ${diff}/${cells}`);
+  }
+  D.w.terminate();
+  for (const [name, r] of Object.entries(cases)) {
+    E.w.postMessage({ type: 'reset', seed: 1 });
+    E.w.postMessage({ type: 'bench', ms: 500, rates: { ...zero, ...r } });
+    const b = await E.wait('bench');
+    results.speed[name] = { realtime: +(b.ms / b.wallMs).toFixed(2), spikesPerS: Math.round(b.spikes / b.ms * 1000), eventsPerS: Math.round(b.events / b.ms * 1000) };
+    log(`${name.padEnd(11)} ${(b.ms / b.wallMs).toFixed(2)}x realtime  spikes/s=${Math.round(b.spikes / b.ms * 1000)}  synaptic events/s=${(b.events / b.ms / 1000).toFixed(1)}M`);
+  }
+  window.benchResults = results;
+  log('done');
+})();
+</script>
+</body>
+</html>
